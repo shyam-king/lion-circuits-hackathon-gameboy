@@ -32,7 +32,12 @@ void setup()
 
     initSSD1306(); // Initialize SSD1306
     clearScreen();
-    // drawSmiley();                // Fill screen with pattern
+    drawSmiley(); // Fill screen with pattern
+    delay(5000);
+    clearScreen();
+    drawSmileyCentered();
+    delay(5000);
+    clearScreen();
 }
 
 void loop()
@@ -60,7 +65,7 @@ void loop()
     input.up_button = up_button_pressed;
     input.down_button = down_button_pressed;
     input.left_push_button = left_push_button_pressed;
-    input.analog_dial = potValue/16;
+    input.analog_dial = potValue / 16;
 
     spaceship->update_frame(&input, changes, &output);
 
