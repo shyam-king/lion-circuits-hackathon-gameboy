@@ -95,7 +95,8 @@ void initSSD1306()
     writeCommands(initCmds, sizeof(initCmds));
 }
 
-void drawSmiley() {
+void drawSmiley()
+{
     // 8x8 smiley pattern (each byte is a vertical column, bottom-up)
     uint8_t smiley[8] = {
         0x3C, // 00111100
@@ -109,25 +110,44 @@ void drawSmiley() {
     };
 
     ScreenPageChange updates[8];
-    for (uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++)
+    {
         updates[i] = {2, (uint8_t)(60 + i), smiley[i]};
     }
 
     applyUpdates(updates, 8);
 }
 
-void clearScreen() {
+void drawSmileyCentered()
+{
+    uint8_t smiley[8] = {
+        0x3C, 0x42, 0xA5, 0x81,
+        0xA5, 0x99, 0x42, 0x3C};
+
+    uint8_t startPage = 3; // Vertically centered (page 3)
+    uint8_t startCol = 60; // Horizontally centered (column 60)
+
+    ScreenPageChange updates[8];
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        updates[i] = {startPage, (uint8_t)(startCol + i), smiley[i]};
+    }
+
+    applyUpdates(updates, 8);
+}
+
+void clearScreen()
+{
     ScreenPageChange updates[1024]; // 128 columns × 8 pages = 1024
     size_t index = 0;
 
-    for (uint8_t page = 0; page < 8; page++) {
-        for (uint8_t col = 0; col < 128; col++) {
-            updates[index++] = { page, col, 0x00 }; // 0x00 = all pixels off
+    for (uint8_t page = 0; page < 8; page++)
+    {
+        for (uint8_t col = 0; col < 128; col++)
+        {
+            updates[index++] = {page, col, 0x00}; // 0x00 = all pixels off
         }
     }
 
     applyUpdates(updates, index);
 }
-
-
-
