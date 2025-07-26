@@ -33,11 +33,15 @@ class Spaceship : public GameController {
     void draw_asteroid(MapObject &object);
     void update_objects();
     void update_bullet(MapObject &object);
+    void update_asteroid(MapObject &object);
     void draw_objects();
 
     void create_bullet(uint8_t direction);
     void update_player_position(GameInputState *input);
     void create_asteroid(uint16_t x, uint16_t y, uint8_t direction);
+    void death_screen();
+
+    void set_buzzer(uint8_t value);
 
     void clean_up_objects();
     
@@ -51,6 +55,9 @@ class Spaceship : public GameController {
     uint8_t player_direction;
 
     bool cleared_screen;
+    bool player_hit;
+
+    uint8_t buzzer_value;
 
    public:
     Spaceship(GameDisplayState *gameState);

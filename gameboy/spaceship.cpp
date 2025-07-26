@@ -6,6 +6,7 @@
 
 #define PLAYER_SPEED 10
 #define BULLET_SPEED 50
+#define ASTEROID_SPEED 5
 
 uint8_t scale_input(uint8_t input, uint8_t resolution) {
     uint8_t val = input * resolution / 255;
@@ -13,6 +14,11 @@ uint8_t scale_input(uint8_t input, uint8_t resolution) {
         val = resolution;
     }
     return val;
+}
+
+
+double distance_to_point(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
+    return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
 }
 
 void get_rotated_point(uint16_t x, uint16_t y, uint8_t direction, uint16_t *rotated_x, uint16_t *rotated_y, uint16_t pivot_xx = DISPLAY_CENTER_X, uint16_t pivot_yy = DISPLAY_CENTER_Y) {
@@ -38,6 +44,8 @@ Spaceship::Spaceship(GameDisplayState *gameState): GameController(gameState) {
     this->objects = new MapObject[MAX_OBJECTS];
     this->objectsSwap = new MapObject[MAX_OBJECTS];
     this->object_count = 0;
+    this->player_hit = false;
+    this->buzzer_value = 0;
 }
 
 Spaceship::~Spaceship() throw() {
@@ -49,8 +57,24 @@ Spaceship::~Spaceship() throw() {
 void Spaceship::clean_up_objects() {
     size_t new_object_count = 0;
     for (size_t i=0; i<this->object_count; i++) {
+        if (this->objects[i].type == MAP_OBJECT_TYPE_ASTEROID) {
+            if (distance_to_point(this->player_x, this->player_y, this->objects[i].x, this->objects[i].y) < 10) {
+                this->player_hit = true;
+                continue; //asteroid hit player
+            }
+
+            for (size_t j=0; j<this->object_count; ++j) {
+                if (this->objects[j].type == MAP_OBJECT_TYPE_BULLET) {
+                    if (distance_to_point(this->objects[i].x, this->objects[i].y, this->objects[j].x, this->objects[j].y) < 10) {
+                        this->set_buzzer(100);
+                        continue; //bullet hit asteroid
+                    }
+                }
+            }
+        }
+
         if (this->objects[i].x < 0 || this->objects[i].x >= MAP_WIDTH || this->objects[i].y < 0 || this->objects[i].y >= MAP_HEIGHT) {
-            continue;
+            continue; //bullet out of bounds
         }
 
         this->objectsSwap[new_object_count] = this->objects[i];
@@ -78,6 +102,7 @@ void Spaceship::create_bullet(uint8_t direction) {
         this->objects[this->object_count].direction = direction;
         this->objects[this->object_count].type = MAP_OBJECT_TYPE_BULLET;
         this->object_count++;
+        this->set_buzzer(50);
     }
 }
 
@@ -104,11 +129,6 @@ void Spaceship::draw_objects() {
     }
 }
 
-
-
-double distance_to_point(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-    return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
-}
 
 void Spaceship::draw_bullet(MapObject &object) {
     uint16_t pivot_x = this->player_x;
@@ -137,6 +157,15 @@ void Spaceship::update_bullet(MapObject &object) {
     double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
     uint16_t new_x = object.x + BULLET_SPEED * cos(angle);
     uint16_t new_y = object.y + BULLET_SPEED * sin(angle);
+
+    object.x = new_x;
+    object.y = new_y;
+}
+
+void Spaceship::update_asteroid(MapObject &object) {
+    double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+    uint16_t new_x = object.x + ASTEROID_SPEED * cos(angle);
+    uint16_t new_y = object.y + ASTEROID_SPEED * sin(angle);
 
     object.x = new_x;
     object.y = new_y;
@@ -237,36 +266,51 @@ void Spaceship::update_player_position(GameInputState *input) {
     this->player_y = new_y;
 }
 
+void Spaceship::death_screen() {
+    for (uint16_t x=0; x<128; x++) {
+        for (uint16_t y=0; y<64; y++) {
+            this->gameState->update_screen_pixel(x, y, true);
+        }
+    }
+}
+
+void Spaceship::set_buzzer(uint8_t value) {
+    if (this->buzzer_value < value) {
+        this->buzzer_value = value;
+    }
+}
+
 void Spaceship::update_frame(GameInputState *inputState, ScreenPageChange *changes, GameOutputState *outputState) {
-    //updates
-    this->update_player_position(inputState);
+    if (!this->player_hit) {
+        this->buzzer_value = 0;
+        this->update_player_position(inputState);
 
-    if (inputState->left_push_button) {
-        this->create_bullet(this->player_direction);
-    }
+        if (inputState->left_push_button) {
+            this->create_bullet(this->player_direction);
+        }
 
-    this->player_direction = scale_input(inputState->analog_dial, DIRECTION_RESOLUTION);
+        this->player_direction = scale_input(inputState->analog_dial, DIRECTION_RESOLUTION);
 
-    this->update_objects();
+        this->update_objects();
 
-    //clean up
-    this->clean_up_objects();
+        //clean up
+        this->clean_up_objects();
 
-    // Drawing 
-    if (!this->cleared_screen) {
-        this->gameState->clear_screen();
-        this->cleared_screen = true;
-    }
+        // Drawing 
+        if (!this->cleared_screen) {
+            this->gameState->clear_screen();
+            this->cleared_screen = true;
+        }
 
-    this->draw_player();
-    this->draw_objects();
+        this->draw_player();
+        this->draw_objects();
+    } else {
+        this->death_screen();
+        this->set_buzzer(255);
+    } 
 
     uint16_t changes_flushed = this->gameState->flush_screen_changes(changes);
 
-    this->player_direction += 1;
-    if (this->player_direction >= DIRECTION_RESOLUTION) {
-        this->player_direction = 0;
-    }
-    
     outputState->screenPageChanges = changes_flushed;
+    outputState->buzzerValue = this->buzzer_value;
 }
