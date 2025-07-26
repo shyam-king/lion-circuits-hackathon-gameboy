@@ -1,7 +1,7 @@
 #include "engine.h"
 #include <stdint.h>
 
-#define GAME_DEBUG
+// #define GAME_DEBUG
 
 #ifdef GAME_DEBUG
 #include <iostream>
@@ -42,9 +42,18 @@ void GameDisplayState::update_screen_pixel(uint8_t x, uint8_t y, bool state) {
     uint8_t row = y % 8;
     uint8_t bit = 1 << row;
     DEBUG_PRINT("updating bit at page " << (int)page << " column " << (int)column << " to " << (int)bit);
-    if (!this->screen_buffer) {
-        DEBUG_PRINT("screen_buffer is null");
+
+
+    if (x >= this->resolution_x || y >= this->resolution_y || x < 0 || y < 0) {
+        DEBUG_PRINT("pixel out of bounds");
+        return;
     }
+
+    uint8_t current_value = this->screen_buffer[page * COLUMNS + column] & bit;
+    if (current_value == state) {
+        return;
+    }
+
     if (state) {
         this->screen_buffer[page * COLUMNS + column] |= bit;
     } else {

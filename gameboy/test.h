@@ -10,7 +10,6 @@ class TestGame : public GameController {
    public:
     TestGame(GameDisplayState *gameState);
     ~TestGame() throw();
-    void handle_input(uint8_t input_code, uint8_t input_value);
     void update_frame(GameInputState *inputState, ScreenPageChange *changes, GameOutputState *outputState);
 };
 

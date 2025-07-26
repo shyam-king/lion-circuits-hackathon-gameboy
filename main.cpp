@@ -1,5 +1,5 @@
-#include "engine.h"
-#include "test.h"
+#include "gameboy/engine.h"
+#include "gameboy/test.h"
 #include <iostream>
 
 #define PAGE_COUNT 8

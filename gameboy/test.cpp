@@ -4,7 +4,7 @@
 #define RES_X 128
 #define RES_Y 64
 
-#define GAME_DEBUG
+// #define GAME_DEBUG
 
 #ifdef GAME_DEBUG
 #include <iostream>
@@ -24,9 +24,6 @@ TestGame::~TestGame() throw() {
     
 }
 
-void TestGame::handle_input(unsigned char input_code, unsigned char input_value) {
-    
-}
 
 void TestGame::update_frame(GameInputState *inputState, ScreenPageChange *changes, GameOutputState *outputState) {
     this->flag = !this->flag;
