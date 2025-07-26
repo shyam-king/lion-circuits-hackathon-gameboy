@@ -1,6 +1,7 @@
 #ifndef SPACESHIP_H
 #define SPACESHIP_H
 
+#include <cstddef>
 #include <stdint.h>
 
 #include "engine.h"
@@ -15,6 +16,7 @@
 
 #define MAP_OBJECT_TYPE_BULLET 0
 #define MAP_OBJECT_TYPE_BOUNDARY 1
+#define MAP_OBJECT_TYPE_ASTEROID 2
 
 struct MapObject {
     uint16_t x;
@@ -27,12 +29,21 @@ class Spaceship : public GameController {
     private:
     void draw_player();
     void clear_player();
-    void get_rotated_point(uint16_t x, uint16_t y, uint8_t direction, uint16_t *rotated_x, uint16_t *rotated_y);
-    void create_bullet();
-    void draw_bullets();
+    void draw_bullet(MapObject &object);
+    void draw_asteroid(MapObject &object);
+    void update_objects();
+    void update_bullet(MapObject &object);
+    void draw_objects();
+
+    void create_bullet(uint8_t direction);
+    void update_player_position(GameInputState *input);
+    void create_asteroid(uint16_t x, uint16_t y, uint8_t direction);
+
+    void clean_up_objects();
     
     MapObject *objects;
-    uint8_t object_count;
+    MapObject *objectsSwap;
+    size_t object_count;
 
     protected:
     uint16_t player_x;
