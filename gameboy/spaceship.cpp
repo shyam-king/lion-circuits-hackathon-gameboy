@@ -72,9 +72,13 @@ Spaceship::Spaceship(GameDisplayState *gameState): GameController(gameState) {
 }
 
 void Spaceship::init_map() {
-    // this->create_asteroid(MAP_WIDTH / 2 + 30, MAP_HEIGHT / 2, 4);
-    // this->create_asteroid(MAP_WIDTH / 2 - 30, MAP_HEIGHT / 2, 0);
-    this->create_asteroid(MAP_WIDTH  - ASTEROID_SPEED*3, MAP_HEIGHT / 2, 1);
+    this->create_asteroid(MAP_WIDTH / 2 + 120, ASTEROID_RADIUS*2, 4);
+    this->create_asteroid(MAP_WIDTH / 2 - 120, ASTEROID_RADIUS*2, 0);
+    this->create_asteroid(MAP_WIDTH  - ASTEROID_SPEED*3, ASTEROID_RADIUS*10, 1);
+    this->create_asteroid(ASTEROID_RADIUS*2, ASTEROID_RADIUS*2, 1);
+    this->create_asteroid(ASTEROID_RADIUS*2, MAP_HEIGHT/2, 1);
+    this->create_asteroid(MAP_WIDTH /2, ASTEROID_RADIUS*10, 3);
+    this->create_asteroid(MAP_WIDTH/2, MAP_HEIGHT-ASTEROID_RADIUS*2, 5);
 }
 
 Spaceship::~Spaceship() throw() {
