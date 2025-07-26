@@ -27,7 +27,7 @@ struct GameInputState {
 
 struct GameOutputState {
     uint8_t buzzerValue;
-    uint8_t screenPageChanges;
+    uint16_t screenPageChanges;
 };
 
 class GameDisplayState {
@@ -41,15 +41,15 @@ class GameDisplayState {
     public:
         GameDisplayState();
         ~GameDisplayState() throw();
-        int test();
+
         void clear_screen();
-        uint8_t flush_screen_changes(ScreenPageChange *changes); // returns the number of changes flushed
+        uint16_t flush_screen_changes(ScreenPageChange *changes); // returns the number of changes flushed
         void update_screen_pixel(uint8_t x, uint8_t y, bool state);
 };
 
 class GameController {
-    private:
-    GameDisplayState *gameState;
+    protected:
+        GameDisplayState *gameState;
 
 
     public:

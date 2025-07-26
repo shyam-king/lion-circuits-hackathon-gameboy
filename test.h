@@ -6,8 +6,6 @@
 #include "engine.h"
 
 class TestGame : public GameController {
-    private:
-    GameDisplayState *gameState;
     bool flag;
    public:
     TestGame(GameDisplayState *gameState);

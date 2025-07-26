@@ -7,19 +7,22 @@
 #define MAX_CHANGES PAGE_COUNT*COLUMNS
 
 int main() {
-    GameDisplayState gameState;
-    GameController *gameController = new TestGame(&gameState);
+    GameDisplayState *gameState = new GameDisplayState();
+    gameState->update_screen_pixel(0, 0, true);
+    GameController *gameController = new TestGame(gameState);
     ScreenPageChange changes[MAX_CHANGES];
     GameOutputState output;
     GameInputState input;
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1; i++) {
         input.left_push_button = false;
         input.up_button = false;
         input.down_button = false;
         input.analog_dial = 0;
 
 
+        std::cout << "Frame " << i << std::endl;
         gameController->update_frame(&input, changes, &output);
+        std::cout << "Frame " << i << " done" << std::endl;
 
         std::cout << "Buzzer value: " << (int)output.buzzerValue << std::endl;
 
@@ -30,5 +33,6 @@ int main() {
     }
     
     delete gameController;
+    delete gameState;
     return 0;
 }
