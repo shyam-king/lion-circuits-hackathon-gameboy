@@ -11,7 +11,7 @@
 #define DEBUG_PRINT(x)
 #endif
 
-#define MAX_OBJECTS 65335
+#define MAX_OBJECTS 100
 
 #define PLAYER_SPEED 4
 #define BULLET_SPEED 5
