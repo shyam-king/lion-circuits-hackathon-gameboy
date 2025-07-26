@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include "display.h"
 #include "engine.h"
-#include "test.h"
+#include "spaceship.h"
 
 #define SDA_PIN 8
 #define SCL_PIN 9
@@ -13,7 +13,7 @@ ScreenPageChange *changes;
 void setup()
 {
     displayState = new GameDisplayState();
-    spaceship = new TestGame(displayState);
+    spaceship = new Spaceship(displayState);
     changes = new ScreenPageChange[8*128+1];
 
     Serial.begin(115200);
