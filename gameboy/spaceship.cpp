@@ -2,11 +2,24 @@
 #include <cstdint>
 #include <cmath>
 
+// #define GAME_DEBUG
+
+#ifdef GAME_DEBUG
+#include <iostream>
+#define DEBUG_PRINT(x) std::cout << x << std::endl
+#else
+#define DEBUG_PRINT(x)
+#endif
+
 #define MAX_OBJECTS 65335
 
-#define PLAYER_SPEED 10
-#define BULLET_SPEED 50
-#define ASTEROID_SPEED 5
+#define PLAYER_SPEED 4
+#define BULLET_SPEED 5
+#define ASTEROID_SPEED 2
+#define ASTEROID_RADIUS 3
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 uint8_t scale_input(uint8_t input, uint8_t resolution) {
     uint8_t val = input * resolution / 255;
@@ -19,6 +32,12 @@ uint8_t scale_input(uint8_t input, uint8_t resolution) {
 
 double distance_to_point(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
     return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+}
+
+void transform_point(uint16_t x, uint16_t y, uint16_t pivot_x, uint16_t pivot_y, uint16_t *new_x, uint16_t *new_y) {
+    // pivot_x and pivot_y are points corresponding to SCREEN_CENTER_X and SCREEN_CENTER_Y
+    *new_x = DISPLAY_CENTER_X + (x - pivot_x);
+    *new_y = DISPLAY_CENTER_Y + (y - pivot_y);
 }
 
 void get_rotated_point(uint16_t x, uint16_t y, uint8_t direction, uint16_t *rotated_x, uint16_t *rotated_y, uint16_t pivot_xx = DISPLAY_CENTER_X, uint16_t pivot_yy = DISPLAY_CENTER_Y) {
@@ -36,7 +55,7 @@ void get_rotated_point(uint16_t x, uint16_t y, uint8_t direction, uint16_t *rota
 }
 
 Spaceship::Spaceship(GameDisplayState *gameState): GameController(gameState) {
-    this->player_x = MAP_WIDTH / 2;
+    this->player_x = MAP_WIDTH/2;
     this->player_y = MAP_HEIGHT / 2;
     this->player_direction = 0;
     this->cleared_screen = false;
@@ -46,6 +65,16 @@ Spaceship::Spaceship(GameDisplayState *gameState): GameController(gameState) {
     this->object_count = 0;
     this->player_hit = false;
     this->buzzer_value = 0;
+
+    this->init_map();
+
+    DEBUG_PRINT("Game initialized");
+}
+
+void Spaceship::init_map() {
+    // this->create_asteroid(MAP_WIDTH / 2 + 30, MAP_HEIGHT / 2, 4);
+    // this->create_asteroid(MAP_WIDTH / 2 - 30, MAP_HEIGHT / 2, 0);
+    this->create_asteroid(MAP_WIDTH  - ASTEROID_SPEED*3, MAP_HEIGHT / 2, 1);
 }
 
 Spaceship::~Spaceship() throw() {
@@ -54,7 +83,44 @@ Spaceship::~Spaceship() throw() {
     this->object_count = 0;
 }
 
-void Spaceship::clean_up_objects() {
+bool Spaceship::check_bullet_collision_for_asteroid(MapObject &object) {
+    for (size_t i=0; i<this->object_count; i++) {
+        if (this->objects[i].type == MAP_OBJECT_TYPE_BULLET) {
+            double bullet_x = this->objects[i].x;
+            double bullet_y = this->objects[i].y;
+            double asteroid_x = object.x;
+            double asteroid_y = object.y;
+
+            double bullet_angle = this->objects[i].direction * 2 * M_PI / DIRECTION_RESOLUTION;
+            double asteroid_angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+
+            double bullet_speed = BULLET_SPEED;
+            double asteroid_speed = ASTEROID_SPEED;
+
+            double relative_speed = sqrt(bullet_speed*bullet_speed + asteroid_speed*asteroid_speed - 2*bullet_speed*asteroid_speed*cos(bullet_angle - asteroid_angle));
+            double relative_angle = acos((bullet_speed*bullet_speed + relative_speed*relative_speed - asteroid_speed*asteroid_speed) / (2*bullet_speed*relative_speed));
+            
+            double theta = 2*M_PI - relative_angle;
+
+            double distance = distance_to_point(bullet_x, bullet_y, asteroid_x, asteroid_y);
+
+            double distance_from_center = abs(distance * sin(theta));
+            double distance_to_collision_point = abs(distance * cos(theta));
+
+            DEBUG_PRINT("distance: " << distance);
+            DEBUG_PRINT("distance_from_center: " << distance_from_center);
+            DEBUG_PRINT("distance_to_collision_point: " << distance_to_collision_point);
+
+            if (distance_from_center <= ASTEROID_RADIUS && distance_to_collision_point <= relative_speed) {
+                DEBUG_PRINT("bullet hit asteroid");
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void Spaceship::clean_up_objects() { //objects that need to be deleted from mem (bullets)
     size_t new_object_count = 0;
     for (size_t i=0; i<this->object_count; i++) {
         if (this->objects[i].type == MAP_OBJECT_TYPE_ASTEROID) {
@@ -63,13 +129,10 @@ void Spaceship::clean_up_objects() {
                 continue; //asteroid hit player
             }
 
-            for (size_t j=0; j<this->object_count; ++j) {
-                if (this->objects[j].type == MAP_OBJECT_TYPE_BULLET) {
-                    if (distance_to_point(this->objects[i].x, this->objects[i].y, this->objects[j].x, this->objects[j].y) < 10) {
-                        this->set_buzzer(100);
-                        continue; //bullet hit asteroid
-                    }
-                }
+            if (this->check_bullet_collision_for_asteroid(objects[i])) {
+                this->set_buzzer(100);
+                this->clear_asteroid(objects[i]);
+                continue; //bullet hit asteroid
             }
         }
 
@@ -113,6 +176,8 @@ void Spaceship::create_asteroid(uint16_t x, uint16_t y, uint8_t direction) {
         this->objects[this->object_count].direction = direction;
         this->objects[this->object_count].type = MAP_OBJECT_TYPE_ASTEROID;
         this->object_count++;
+
+        DEBUG_PRINT("asteroid created: " << x << ", " << y << " direction: " << (int)direction << " new object count: " << (int)this->object_count);
     }
 }
 
@@ -130,16 +195,27 @@ void Spaceship::draw_objects() {
 }
 
 
+void Spaceship::clear_bullet(MapObject &object) {
+    for (uint16_t x=MAX(object.x-2, 0); x<=MIN(object.x+2, MAP_WIDTH); x++) {
+        for (uint16_t y=MAX(object.y-2, 0); y<=MIN(object.y+2, MAP_HEIGHT); y++) {
+            uint16_t screen_x, screen_y;
+            transform_point(x, y, this->player_x, this->player_y, &screen_x, &screen_y);
+            this->gameState->update_screen_pixel(screen_x, screen_y, false);
+        }
+    }
+}
+
 void Spaceship::draw_bullet(MapObject &object) {
     uint16_t pivot_x = this->player_x;
     uint16_t pivot_y = this->player_y;
 
-    for (uint16_t x=-1; x<=1; x++) {
-        uint16_t point_x = object.x + x + pivot_x;
-        uint16_t point_y = object.y + pivot_y;
+    for (uint16_t x=MAX(object.x-1, 0); x<=MIN(object.x+1, MAP_WIDTH); x++) {
+        uint16_t y = object.y;
+        uint16_t screen_x, screen_y;
         uint16_t rotated_x, rotated_y;
-        get_rotated_point(point_x, point_y, object.direction, &rotated_x, &rotated_y, object.x, object.y);
-        this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
+        get_rotated_point(x, y, object.direction, &rotated_x, &rotated_y, object.x, object.y);
+        transform_point(rotated_x, rotated_y, this->player_x, this->player_y, &screen_x, &screen_y);
+        this->gameState->update_screen_pixel(screen_x, screen_y, true);
     }
 }
 
@@ -148,6 +224,9 @@ void Spaceship::update_objects() {
         switch (this->objects[i].type) {
             case MAP_OBJECT_TYPE_BULLET:
                 this->update_bullet(this->objects[i]);
+                break;
+            case MAP_OBJECT_TYPE_ASTEROID:
+                this->update_asteroid(this->objects[i]);
                 break;
         }
     }
@@ -160,6 +239,8 @@ void Spaceship::update_bullet(MapObject &object) {
 
     object.x = new_x;
     object.y = new_y;
+
+    DEBUG_PRINT("bullet: " << object.x << ", " << object.y << " direction: " << (int)object.direction);
 }
 
 void Spaceship::update_asteroid(MapObject &object) {
@@ -167,29 +248,79 @@ void Spaceship::update_asteroid(MapObject &object) {
     uint16_t new_x = object.x + ASTEROID_SPEED * cos(angle);
     uint16_t new_y = object.y + ASTEROID_SPEED * sin(angle);
 
+    DEBUG_PRINT("asteroid new: " << new_x << ", " << new_y << " direction: " << (int)object.direction);
+
+    //collisions
+    if (new_x < 0) {
+        DEBUG_PRINT("asteroid hit left wall");
+        new_x = ASTEROID_SPEED;
+        double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+        angle = M_PI - angle;
+        if (angle < 0) {
+            angle = 2 * M_PI + angle;
+        }
+        object.direction = (uint8_t)(angle * DIRECTION_RESOLUTION / (2 * M_PI));
+    } else if (new_x >= MAP_WIDTH) {
+        DEBUG_PRINT("asteroid hit right wall");
+        new_x = MAP_WIDTH - ASTEROID_SPEED;
+        double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+        angle = M_PI - angle;
+        if (angle < 0) {
+            angle = 2 * M_PI + angle;
+        }
+        object.direction = (uint8_t)(angle * DIRECTION_RESOLUTION / (2 * M_PI));
+    } else if (new_y < 0) {
+        DEBUG_PRINT("asteroid hit top wall");
+        new_y = ASTEROID_SPEED;
+        double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+        angle = angle - 3*M_PI/2;
+        if (angle < 0) {
+            angle = 2 * M_PI + angle;
+        }
+        object.direction = (uint8_t)(angle * DIRECTION_RESOLUTION / (2 * M_PI));
+    } else if (new_y >= MAP_HEIGHT) {
+        DEBUG_PRINT("asteroid hit bottom wall");
+        new_y = MAP_HEIGHT - ASTEROID_SPEED;
+        double angle = object.direction * 2 * M_PI / DIRECTION_RESOLUTION;
+        angle = M_PI/2-angle;
+        if (angle < 0) {
+            angle = 2 * M_PI + angle;
+        }
+        object.direction = (uint8_t)(angle * DIRECTION_RESOLUTION / (2 * M_PI));
+    }
+
     object.x = new_x;
     object.y = new_y;
+
+    DEBUG_PRINT("asteroid: " << object.x << ", " << object.y << " direction: " << (int)object.direction);
 }
 
-void Spaceship::draw_asteroid(MapObject &object) {
-    uint16_t pivot_x = this->player_x;
-    uint16_t pivot_y = this->player_y;
+void Spaceship::clear_asteroid(MapObject &object) {
+    //clear asteroid
+    for (uint16_t x=MAX(object.x-ASTEROID_RADIUS, 0); x<=MIN(object.x+ASTEROID_RADIUS, MAP_WIDTH); x++) {
+        for (uint16_t y=MAX(object.y-ASTEROID_RADIUS, 0); y<=MIN(object.y+ASTEROID_RADIUS, MAP_HEIGHT); y++) {
+            uint16_t screen_x, screen_y;
+            transform_point(x, y, this->player_x, this->player_y, &screen_x, &screen_y);
+            this->gameState->update_screen_pixel(screen_x, screen_y, false);
+        }
+    }
+}
 
-    
-    for (uint16_t x=-4; x<=4; x++) {
-        for (uint16_t y=-4; y<=4; y++) {
-            double distance = distance_to_point(pivot_x, pivot_y, object.x, object.y);
-            if (abs(distance-4) < 0.1) {
-                uint16_t point_x = object.x + x + pivot_x;
-                uint16_t point_y = object.y + y + pivot_y;
-                this->gameState->update_screen_pixel(point_x, point_y, true);
+void Spaceship::draw_asteroid(MapObject &object) {   
+    //draw asteroid
+    for (uint16_t x=MAX(object.x-ASTEROID_RADIUS, 0); x<=MIN(object.x+ASTEROID_RADIUS, MAP_WIDTH); x++) {
+        for (uint16_t y=MAX(object.y-ASTEROID_RADIUS, 0); y<=MIN(object.y+ASTEROID_RADIUS, MAP_HEIGHT); y++) {
+            double distance = distance_to_point(x, y, object.x, object.y);
+            if (abs(distance-ASTEROID_RADIUS) < 0.5) {
+                uint16_t screen_x, screen_y;
+                transform_point(x, y, this->player_x, this->player_y, &screen_x, &screen_y);
+                this->gameState->update_screen_pixel(screen_x, screen_y, true);
             }
         }
     }
 }
 
 void Spaceship::draw_player() {
-    this->clear_player();
     for (uint16_t x=DISPLAY_CENTER_X-5; x<=DISPLAY_CENTER_X-4; x++) {
         for (uint16_t y=DISPLAY_CENTER_Y-5; y<=DISPLAY_CENTER_Y+5; y++) {
             uint16_t rotated_x, rotated_y;
@@ -228,6 +359,19 @@ void Spaceship::draw_player() {
         uint16_t rotated_x, rotated_y;
         get_rotated_point(x, DISPLAY_CENTER_Y, this->player_direction, &rotated_x, &rotated_y);
         this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
+    }
+}
+
+void Spaceship::clear_objects() {
+    for (size_t i=0; i<this->object_count; i++) {
+        switch (this->objects[i].type) {
+            case MAP_OBJECT_TYPE_BULLET:
+                this->clear_bullet(this->objects[i]);
+                break;
+            case MAP_OBJECT_TYPE_ASTEROID:
+                this->clear_asteroid(this->objects[i]);
+                break;
+        }
     }
 }
 
@@ -282,17 +426,6 @@ void Spaceship::set_buzzer(uint8_t value) {
 
 void Spaceship::update_frame(GameInputState *inputState, ScreenPageChange *changes, GameOutputState *outputState) {
     if (!this->player_hit) {
-        this->buzzer_value = 0;
-        this->update_player_position(inputState);
-
-        if (inputState->left_push_button) {
-            this->create_bullet(this->player_direction);
-        }
-
-        this->player_direction = scale_input(inputState->analog_dial, DIRECTION_RESOLUTION);
-
-        this->update_objects();
-
         //clean up
         this->clean_up_objects();
 
@@ -302,8 +435,25 @@ void Spaceship::update_frame(GameInputState *inputState, ScreenPageChange *chang
             this->cleared_screen = true;
         }
 
+        this->clear_player();
+        this->player_direction = scale_input(inputState->analog_dial, DIRECTION_RESOLUTION);
+
+        this->clear_objects();
+        
+        this->buzzer_value = 0;
+        this->update_player_position(inputState);
+
+        if (inputState->left_push_button) {
+            this->create_bullet(this->player_direction);
+        }
+
+
+        this->update_objects();
+
         this->draw_player();
         this->draw_objects();
+
+        DEBUG_PRINT("player: " << this->player_x << ", " << this->player_y << " direction: " << (int)this->player_direction);
     } else {
         this->death_screen();
         this->set_buzzer(255);

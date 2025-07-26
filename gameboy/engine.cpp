@@ -97,4 +97,21 @@ GameController::~GameController() throw() {
     // this->gameState = 0;
 }
 
+void GameDisplayState::render_screen_as_str(char* str) {
+    uint16_t str_index = 0;
+    for (uint8_t y = 0; y < this->resolution_y; y++) {
+        for (uint8_t x = 0; x < this->resolution_x; x++) {
+            uint8_t column = x;
+            uint8_t page = y / 8;
+            uint8_t row = y % 8;
+            uint8_t bit = 1 << row;
+
+            uint8_t current_value = this->screen_buffer[page * COLUMNS + column] & bit;
+            str[str_index++] = current_value ? '.' : ' ';
+        }
+        str[str_index++] = '\n';
+    }
+    str[str_index] = '\0';
+}
+
 

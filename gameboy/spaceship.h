@@ -12,7 +12,7 @@
 #define DISPLAY_CENTER_X 128/2
 #define DISPLAY_CENTER_Y 64/2
 
-#define DIRECTION_RESOLUTION 16
+#define DIRECTION_RESOLUTION 8
 
 #define MAP_OBJECT_TYPE_BULLET 0
 #define MAP_OBJECT_TYPE_BOUNDARY 1
@@ -30,11 +30,14 @@ class Spaceship : public GameController {
     void draw_player();
     void clear_player();
     void draw_bullet(MapObject &object);
+    void clear_bullet(MapObject &object);
     void draw_asteroid(MapObject &object);
+    void clear_asteroid(MapObject &object);
     void update_objects();
     void update_bullet(MapObject &object);
     void update_asteroid(MapObject &object);
     void draw_objects();
+    void clear_objects();
 
     void create_bullet(uint8_t direction);
     void update_player_position(GameInputState *input);
@@ -43,7 +46,11 @@ class Spaceship : public GameController {
 
     void set_buzzer(uint8_t value);
 
+    bool check_bullet_collision_for_asteroid(MapObject &object);
+
     void clean_up_objects();
+
+    void init_map();
     
     MapObject *objects;
     MapObject *objectsSwap;

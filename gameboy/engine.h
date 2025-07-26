@@ -45,6 +45,7 @@ class GameDisplayState {
         void clear_screen();
         uint16_t flush_screen_changes(ScreenPageChange *changes); // returns the number of changes flushed
         void update_screen_pixel(uint8_t x, uint8_t y, bool state);
+        void render_screen_as_str(char* str);
 };
 
 class GameController {
