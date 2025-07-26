@@ -31,8 +31,8 @@ void Spaceship::get_rotated_point(uint16_t x, uint16_t y, uint8_t direction, uin
 }
 
 void Spaceship::clear_player() {
-    for (uint16_t x=DISPLAY_CENTER_X-9; x<=DISPLAY_CENTER_X+9; x++) {
-        for (uint16_t y=DISPLAY_CENTER_Y-9; y<=DISPLAY_CENTER_Y+9; y++) {
+    for (uint16_t x=DISPLAY_CENTER_X-5; x<=DISPLAY_CENTER_X+7; x++) {
+        for (uint16_t y=DISPLAY_CENTER_Y-5; y<=DISPLAY_CENTER_Y+5; y++) {
             this->gameState->update_screen_pixel(x, y, false);
         }
     }
@@ -48,28 +48,33 @@ void Spaceship::draw_bullets() {}
 
 void Spaceship::draw_player() {
     this->clear_player();
-    for (uint16_t x=DISPLAY_CENTER_X-4; x<=DISPLAY_CENTER_X-3; x++) {
-        for (uint16_t y=DISPLAY_CENTER_Y-4; y<=DISPLAY_CENTER_Y+4; y++) {
+    for (uint16_t x=DISPLAY_CENTER_X-5; x<=DISPLAY_CENTER_X-4; x++) {
+        for (uint16_t y=DISPLAY_CENTER_Y-5; y<=DISPLAY_CENTER_Y+5; y++) {
             uint16_t rotated_x, rotated_y;
             this->get_rotated_point(x, y, this->player_direction, &rotated_x, &rotated_y);
             this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
         }
     }
     //base shrinking lines
+    for (uint16_t y=DISPLAY_CENTER_Y-4; y<=DISPLAY_CENTER_Y+4; y++) {
+        uint16_t rotated_x, rotated_y;
+        this->get_rotated_point(DISPLAY_CENTER_X-3, y, this->player_direction, &rotated_x, &rotated_y);
+        this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
+    }
+
     for (uint16_t y=DISPLAY_CENTER_Y-3; y<=DISPLAY_CENTER_Y+3; y++) {
         uint16_t rotated_x, rotated_y;
         this->get_rotated_point(DISPLAY_CENTER_X-2, y, this->player_direction, &rotated_x, &rotated_y);
         this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
     }
 
-    //base shrinking lines
     for (uint16_t y=DISPLAY_CENTER_Y-2; y<=DISPLAY_CENTER_Y+2; y++) {
         uint16_t rotated_x, rotated_y;
         this->get_rotated_point(DISPLAY_CENTER_X-1, y, this->player_direction, &rotated_x, &rotated_y);
         this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
     }
 
-    for (uint16_t x=DISPLAY_CENTER_X; x <= DISPLAY_CENTER_X+3; x++){
+    for (uint16_t x=DISPLAY_CENTER_X; x <= DISPLAY_CENTER_X+4; x++){
         for (uint16_t y=DISPLAY_CENTER_Y-1; y<=DISPLAY_CENTER_Y+1; y++) {
             uint16_t rotated_x, rotated_y;
             this->get_rotated_point(x, y, this->player_direction, &rotated_x, &rotated_y);
@@ -77,10 +82,11 @@ void Spaceship::draw_player() {
         }
     }
 
-    uint16_t rotated_x, rotated_y;
-
-    this->get_rotated_point(DISPLAY_CENTER_X+4, DISPLAY_CENTER_Y, this->player_direction, &rotated_x, &rotated_y);
-    this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
+    for (uint16_t x=DISPLAY_CENTER_X+5; x <= DISPLAY_CENTER_X+7; x++){
+        uint16_t rotated_x, rotated_y;
+        this->get_rotated_point(x, DISPLAY_CENTER_Y, this->player_direction, &rotated_x, &rotated_y);
+        this->gameState->update_screen_pixel(rotated_x, rotated_y, true);
+    }
 }
 
 void Spaceship::update_frame(GameInputState *inputState, ScreenPageChange *changes, GameOutputState *outputState) {
