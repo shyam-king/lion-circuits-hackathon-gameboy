@@ -106,4 +106,6 @@ void Spaceship::update_frame(GameInputState *inputState, ScreenPageChange *chang
     if (this->player_direction >= DIRECTION_RESOLUTION) {
         this->player_direction = 0;
     }
+    
+    outputState->screenPageChanges = changes_flushed;
 }
